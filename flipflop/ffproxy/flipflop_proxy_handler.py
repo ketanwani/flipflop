@@ -5,21 +5,53 @@ from ffproxy.plugins.flipflop_plugin_chain import PluginChain
 from ffproxy.plugins.url_replacer_plugin import UrlReplacerPlugin
 from ffproxy.plugins.header_remover_plugin import HeaderRemoverPlugin
 from ffproxy.plugins.flipflop_plugin_mode import FlipFlopPluginMode
+
 class FlipFlopProxyHandler:
+    """
+    Class representing the FlipFlop reverse proxy handler.
+
+    The `FlipFlopProxyHandler` class is responsible for handling incoming requests from clients and forwarding them to
+    the backend server. It utilizes the `PluginChain` to apply registered plugins before forwarding the requests.
+
+    Note:
+        - Users should create a `FlipFlopConfig` instance with essential configuration settings and pass it to the
+          `FlipFlopProxyHandler` constructor.
+        - The `handle_request` method is the main entry point to process incoming requests and forward them to the
+          backend. The response from the backend will be modified based on the registered plugins before being returned
+          to the client.
+    """
 
     def __init__(self, config: FlipFlopConfig):
+        """
+        Initialize the FlipFlopProxyHandler instance with the specified configuration settings.
+
+        Args:
+            config (FlipFlopConfig): The configuration settings for the FlipFlop reverse proxy.
+        """
         self._config = config
         self._plugin_chain = PluginChain()
 
+        # Create and add built-in plugins (UrlReplacerPlugin and HeaderRemoverPlugin) to the plugin chain
         url_replacer = UrlReplacerPlugin("URL Replacer", config, FlipFlopPluginMode.ENABLED)
         header_remover = HeaderRemoverPlugin("Header Remover", config, FlipFlopPluginMode.ENABLED)
         self._plugin_chain.add_plugin(url_replacer)
         self._plugin_chain.add_plugin(header_remover)
 
+        # Add user-defined plugins from the config to the plugin chain
         for key in config.get_plugins():
             self._plugin_chain.add_plugin(config.get_plugins()[key])
 
     def handle_request(self, request, rest_of_path):
+        """
+        Handle the incoming request from the client and forward it to the backend server.
+
+        Args:
+            request: The incoming HTTP request from the client.
+            rest_of_path (str): The portion of the URL path after the reverse proxy URL.
+
+        Returns:
+            HttpResponse: The HTTP response to be sent back to the client.
+        """
         # Get the CSRF token from the incoming request
         csrf_token = request.COOKIES.get('csrftoken')
 
